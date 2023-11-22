@@ -1,0 +1,52 @@
+﻿﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Scripts{
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.min.js"></script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        $(document).ready(() => {
+            var saleChartList = new Array();
+            saleChartList.push(["Tarih", "Kalem", "Silgi", "Defter", "Kitap", "Kağıt"])
+            var connection = new signalR.HubConnectionBuilder().withUrl("https://localhost:7089/SaleHub").build();
+            connection.start().then(() => {
+                connection.invoke("GetSaleList");
+            }).catch((err) => {
+                console.log(err);
+            });
+            connection.on("ReceiveSaleList", (saleList) => {
+                saleChartList = saleChartList.splice(0, 1);
+                saleList.forEach((item) => {
+                    saleChartList.push([item.saleDate, item.prices[0], item.prices[1], item.prices[2], item.prices[3], item.prices[4]])
+                });
+                google.charts.load('current', { 'packages': ['corechart', 'table'] });
+                google.charts.setOnLoadCallback(() => {
+                    drawChart();
+                    drawTable();
+                });
+            });
+
+            function drawChart() {
+                var data = google.visualization.arrayToDataTable(saleChartList);
+                var options = {
+                    title: 'Toplam Satış Grafiği',
+                    curveType: 'none',
+                    legend: { position: 'bottom' }
+                };
+                var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+                chart.draw(data, options);
+            }
+
+            function drawTable() {
+                var data = new google.visualization.arrayToDataTable(saleChartList);
+                var table = new google.visualization.Table(document.getElementById('table_chart'));
+                table.draw(data, { showRowNumber: true, width: '100%', height: '100%' });
+            }
+        });
+    </script>
+}
+
+<div id="curve_chart" style="width: 1200px; height: 800px"></div>
+
+<table id="table_chart" class="table"></table>
